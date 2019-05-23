@@ -1,5 +1,6 @@
-class lcgdm::bdii::dpm ($sitename = undef, $basedir = 'home', $vos = [], $glue2 = true, $hdfs = false, $java_home = '/usr/lib/jvm/java', $hostfqdn = $::fqdn) {
+class lcgdm::bdii::dpm ($sitename = undef, $basedir = 'home', $vos = [], $glue2 = true, $hdfs = false, $java_home = '/usr/lib/jvm/java', $publishfqdn = $::fqdn) {
 
+  $publishdomain = regsubst($publishfqdn, '^[^.]+\.', '')
   if $hdfs {
     file { '/var/lib/bdii/gip/provider/se-dpm':
       owner   => root,
@@ -9,7 +10,9 @@ class lcgdm::bdii::dpm ($sitename = undef, $basedir = 'home', $vos = [], $glue2 
 export LD_LIBRARY_PATH=<%=@java_home%>/jre/lib/amd64/server/
 export X509_USER_CERT=/var/lib/ldap/hostcert.pem
 export X509_USER_KEY=/var/lib/ldap/hostkey.pem
-dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename %><% if @glue2 %> --glue2<% end %> --use-dmlite-conf /etc/dmlite.conf
+export DPM_HOST=<%= @fqdn %>
+export DPNS_HOST=\$DPM_HOST
+dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename %><% if @glue2 %> --glue2<% end %> --use-dmlite-conf /etc/dmlite.conf --domain <%= @publishdomain %> --server <%= @publishfqdn %>
       ")
     }
 
@@ -28,7 +31,9 @@ dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename 
       content => inline_template("
 export X509_USER_CERT=/var/lib/ldap/hostcert.pem
 export X509_USER_KEY=/var/lib/ldap/hostkey.pem
-dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename %><% if @glue2 %> --glue2<% end %>
+export DPM_HOST=<%= @fqdn %>
+export DPNS_HOST=\$DPM_HOST
+dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename %><% if @glue2 %> --glue2<% end %> --domain <%= @publishdomain %> --server <%= @publishfqdn %>
       ")
     }
 
@@ -37,7 +42,7 @@ dpm-listspaces --gip --protocols --basedir <%= @basedir %> --site <%= @sitename 
       group   => root,
       mode    => '0755',
       content => inline_template("
-glite-info-service /var/lib/bdii/gip/glite-info-service-srm2.2.conf <%= @sitename %> httpg://${hostfqdn}:8446/srm/managerv2
+DPM_HOST=<%= @publishfqdn %> glite-info-service /var/lib/bdii/gip/glite-info-service-srm2.2.conf <%= @sitename %> httpg://<%= @publishfqdn %>:8446/srm/managerv2
       ")
     }
 
